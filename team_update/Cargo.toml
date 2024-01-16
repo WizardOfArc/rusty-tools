@@ -1,0 +1,11 @@
+[package]
+name = "team_update"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+chrono = "0.4.24"
+clap = { version = "4.2.1", features = ["derive"] }
+clipboard = "0.5.0"
