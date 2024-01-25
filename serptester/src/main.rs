@@ -72,7 +72,7 @@ fn show_settings(settings: &Args) {
 }
 
 fn main() {
-    println!("Hello, world!");
+    println!("I am the SERP Tester!\nI'll help you navigate to your serp");
     let args = Args::parse();
 
     show_settings(&args);
