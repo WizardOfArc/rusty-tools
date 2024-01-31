@@ -21,7 +21,7 @@ fn validate_filename(filename: &str) -> Result<NaiveDate, String> {
             match NaiveDate::parse_from_str(date, "%Y%m%d") {
                 Ok(parsed_date) => Ok(parsed_date),
                 Err(_) => {
-                    return Err("filename must start with a date in YYYYMMDD format".to_string())
+                    Err("filename must start with a date in YYYYMMDD format".to_string())
                 }
             }
         }

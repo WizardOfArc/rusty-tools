@@ -7,7 +7,7 @@ struct Args {
     /// domain to check
     domain: String,
 
-    // environment: local, stage, prod or l,s,p
+    /// environment: local, stage, prod or l,s,p
     env: String,
     
     /// stage unit - if not on stage or is main stage - use 'X'
