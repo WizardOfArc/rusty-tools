@@ -1,12 +1,12 @@
-# Little Helpers
+# Azi's Little Helpers
 * Presented by Azi (Wizard of Arc)
-## Want to learn Rust?:
+## Want to learn Rust?
 1. start a project
 1. start it small
 1. start it now
 ---
 
-## Azi's Little Helpers:
+### The Helpers:
 
 * [Mean Color](../color_mean/README.md)
 * [SERP Tester](../serptester/README.md)
