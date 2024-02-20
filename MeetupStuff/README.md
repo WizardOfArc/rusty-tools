@@ -1,7 +1,6 @@
-# Prestentation:
-## Little Helpers
+# Little Helpers
 * Presented by Azi (Wizard of Arc)
-### Want to learn Rust?:
+## Want to learn Rust?:
 1. start a project
 1. start it small
 1. start it now
