@@ -1,3 +1,5 @@
+![image](AzisLittleHelpers.png)
+
 # Azi's Little Helpers
 * Presented by Azi (Wizard of Arc)
 ## Want to learn Rust?
