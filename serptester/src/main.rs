@@ -17,7 +17,7 @@ struct Args {
 }
 
 const SERP_PATH: &str = "/serp?q=hotels&debug=show";
-const EMBEDDED_DEMO_PATH: &str = "/embedded-demo?q=hotels&debug=show#S1&debug=1";
+const EMBEDDED_DEMO_PATH: &str = ".s1search.co/embedded-demo?q=hotels&debug=show#S1&debug=1";
 
 
 fn build_url(settings: &Args) -> String {
