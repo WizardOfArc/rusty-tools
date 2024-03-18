@@ -11,6 +11,6 @@
 ### The Helpers:
 
 * [Mean Color](../color_mean/README.md)
-* [SERP Tester](../serptester/README.md)
+* [Urls Opener](../open_urls_from_list)
 * [Team Update](../team_update/README.md)
 * [Summary Update](../summary_update/README.md)
