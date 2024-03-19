@@ -3,8 +3,8 @@
 # Azi's Little Helpers
 * Presented by Azi (Wizard of Arc)
 ## Want to learn Rust?
-1. start a project
-1. start it small
+1. start a project (What project?)
+1. start it small (How small?)
 1. start it now
 ---
 
