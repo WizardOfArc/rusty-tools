@@ -10,3 +10,5 @@ Is there a repetative/boring task that is annoying you terribly - that is a grea
 
 ### Curiosity
 Is there something that you are curious about? Write yourself a tool to help you figure it out.
+
+[Azi's Little Helpers](./README.md)
