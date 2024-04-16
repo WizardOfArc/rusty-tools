@@ -102,7 +102,7 @@ fn build_local_domain(domain: &str, page_type: &PageType) -> String {
 fn build_prod_domain(domain: &str, page_type: &PageType) -> String {
     match page_type {
         PageType::Hosted => format!("https://{}{}", domain, build_path(page_type)),
-        _ => format!("https://{}{}", domain.replace(".", "-"), build_path(page_type)),
+        _ => format!("https://{}{}.s1search.co", domain.replace(".", "-"), build_path(page_type)),
     }
 }
 
