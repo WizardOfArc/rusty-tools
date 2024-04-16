@@ -3,6 +3,7 @@ use std::fs::File;
 use std::io::{self, stdin, BufRead};
 use std::path::Path;
 use std::process::exit;
+use clap::builder::Str;
 use clap::Parser;
 use webbrowser;
 
@@ -100,10 +101,22 @@ fn build_local_domain(domain: &str, page_type: &PageType) -> String {
 }
 
 fn build_prod_domain(domain: &str, page_type: &PageType) -> String {
-    match page_type {
-        PageType::Hosted => format!("https://{}{}", domain, build_path(page_type)),
-        _ => format!("https://{}{}.s1search.co", domain.replace(".", "-"), build_path(page_type)),
-    }
+    let path = build_path(page_type);
+    let vanity_suffix = ".s1search.co";
+    let prod_domain = match page_type {
+        PageType::Hosted => {
+            format!("https://{}{}", domain, path)
+        },
+        PageType::Embedded => {
+            let formatted_domain = domain.replace(".", "-");
+            format!("https://{}{}{}", formatted_domain, vanity_suffix, path)
+        },
+        _ => {
+            format!("https://{}{}.s1search.co", domain.replace(".", "-"), build_path(page_type))
+        },
+    };
+    println!("prod domain built: {:?}", &prod_domain);
+    return prod_domain;
 }
 
 fn build_stage_domain(domain: &str, unit: Option<String>, page_type: &PageType) -> String {
