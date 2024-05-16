@@ -15,3 +15,4 @@
 * [Summary Update](../summary_update/README.md)
 * [Wropen](../wropen/README.md)
 * [Urls Opener](../open_urls_from_list/README.md)
+* [Set Operations](../set_operation/README.md)
