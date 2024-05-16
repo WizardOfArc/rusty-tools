@@ -36,7 +36,7 @@ fn main() {
      let mut out_file = OpenOptions::new()
          .write(true)
          .create(true)
-         .append(true)
+         .append(false)
          .open(&args.outfile)
          .unwrap();
     let mut file_a = OpenOptions::new().read(true).open(&args.filename_a).unwrap();
@@ -53,8 +53,7 @@ fn main() {
         SetOperation::Difference => set_difference(&set_a, &set_b),
     };
     let mut result: Vec<String> = result.iter().cloned().collect();
-    result.sort();
-    for line in result {
-        writeln!(out_file, "{}", line).unwrap();
-    }
+    result.sort_by_key(|s| s.to_lowercase());
+    let output  = result.join("\n");
+    out_file.write_all(output.as_bytes()).unwrap();
 }
