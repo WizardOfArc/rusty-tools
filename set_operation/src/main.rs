@@ -52,6 +52,8 @@ fn main() {
         SetOperation::Intersection => set_intersection(&set_a, &set_b),
         SetOperation::Difference => set_difference(&set_a, &set_b),
     };
+    let mut result: Vec<String> = result.iter().cloned().collect();
+    result.sort();
     for line in result {
         writeln!(out_file, "{}", line).unwrap();
     }
