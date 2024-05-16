@@ -1,4 +1,4 @@
-use std::fs::File;
+use std::fs::OpenOptions;
 use std::collections::HashSet;
 use std::io::prelude::*;
 use clap::{Parser, ValueEnum};
@@ -16,6 +16,7 @@ struct Args {
     operation: SetOperation,
     filename_a: String,
     filename_b: String,
+    outfile: String,
 }
 
 fn set_union(set_a: &HashSet<String>, set_b: &HashSet<String>) -> HashSet<String> {
@@ -32,26 +33,26 @@ fn set_difference(set_a: &HashSet<String>, set_b: &HashSet<String>) -> HashSet<S
 
 fn main() {
      let args = Args::parse();
-     match (File::open(&args.filename_a), File::open(&args.filename_b)) {
-         (Ok(mut file_a), Ok(mut file_b)) => {
-             let mut contents_a = String::new();
-             let mut contents_b = String::new();
-             file_a.read_to_string(&mut contents_a).unwrap();
-             file_b.read_to_string(&mut contents_b).unwrap();
-             let set_a: HashSet<String> = contents_a.lines().map(|s| s.to_string()).collect();
-             let set_b: HashSet<String> = contents_b.lines().map(|s| s.to_string()).collect();
-             let result = match args.operation {
-                 SetOperation::Union => set_union(&set_a, &set_b),
-                 SetOperation::Intersection => set_intersection(&set_a, &set_b),
-                 SetOperation::Difference => set_difference(&set_a, &set_b),
-             };
-             for line in result {
-                 println!("{}", line);
-             }
-         }
-         _ => {
-             println!("Error: could not open file");
-             std::process::exit(1);
-         }
-     }
+     let mut out_file = OpenOptions::new()
+         .write(true)
+         .create(true)
+         .append(true)
+         .open(&args.outfile)
+         .unwrap();
+    let mut file_a = OpenOptions::new().read(true).open(&args.filename_a).unwrap();
+    let mut file_b = OpenOptions::new().read(true).open(&args.filename_b).unwrap();
+    let mut contents_a = String::new();
+    let mut contents_b = String::new();
+    file_a.read_to_string(&mut contents_a).unwrap();
+    file_b.read_to_string(&mut contents_b).unwrap();
+    let set_a: HashSet<String> = contents_a.lines().map(|s| s.to_string()).collect();
+    let set_b: HashSet<String> = contents_b.lines().map(|s| s.to_string()).collect();
+    let result = match args.operation {
+        SetOperation::Union => set_union(&set_a, &set_b),
+        SetOperation::Intersection => set_intersection(&set_a, &set_b),
+        SetOperation::Difference => set_difference(&set_a, &set_b),
+    };
+    for line in result {
+        writeln!(out_file, "{}", line).unwrap();
+    }
 }
