@@ -25,6 +25,7 @@ enum Command {
     ShowState,
     PromptMergeState,
     NotifyOnStage,
+    ReleaseComplete,
 }
 
 #[derive(Debug, Parser)]
@@ -227,6 +228,23 @@ fn notify_on_stage(state: &SemaphoreState) {
     println!("Copied to clipboard - paste in Slack");
 }
 
+fn notify_release_complete(state: &SemaphoreState) {
+    let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
+    let mut lines: Vec<String> = Vec::new();
+    let _ = &state.contributors.iter().for_each(|contributor| {
+        lines.push(format!("{}", contributor));
+    });
+    if state.configs_to_update.len() > 0 {
+        lines.push("\nConfigs to out".to_string());
+    } else {
+        lines.push("\nNo configs to update".to_string());
+    }
+    lines.push("\nRelease is complete - please confirm".to_string());
+    let result = lines.join("\n");
+    ctx.set_contents(result).unwrap();
+    println!("Copied to clipboard - paste in Slack");
+}
+
 fn prep_for_new_release(state: &mut SemaphoreState) {
     println!("Prepping for new release");
     println!(" - clearing old data...");
@@ -298,6 +316,9 @@ fn main() {
         }
         Command::ShowState => {
             semaphore_state.show_state();
+        }
+        Command::ReleaseComplete => {
+            notify_release_complete(&semaphore_state);
         }
     }
 
