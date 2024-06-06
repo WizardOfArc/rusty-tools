@@ -10,7 +10,7 @@ use clap::Parser;
 use clipboard::ClipboardProvider;
 use clipboard::ClipboardContext;
 
-
+const SEMAPHORE_SUPPORT_DIR: &str = "SEMAPHORE_SUPPORT_DIR";
 #[derive(clap::ValueEnum, Clone, Debug)]
 enum Command {
     NewRelease,
@@ -61,7 +61,7 @@ impl SemaphoreState {
     }
 
     fn save(&self) {
-        let directory = env::var("SEMAPHORE_SUPPORT_DIR").unwrap();
+        let directory = env::var(SEMAPHORE_SUPPORT_DIR).unwrap();
         let file_path = format!("{}/semaphore_state.json", directory);
         std::fs::write(file_path, self.to_json_string().unwrap()).unwrap()
     }
@@ -256,20 +256,19 @@ fn prep_for_new_release(state: &mut SemaphoreState) {
 
 fn main() {
     let args: Args = Args::parse();
-    let directory_env_var = "SEMAPHORE_SUPPORT_DIR";
-    let directory = match env::var(directory_env_var) {
+    let directory = match env::var(SEMAPHORE_SUPPORT_DIR) {
         Ok(val) => val,
         Err(_) => {
-            println!("Please set the {} environment variable to an existing directory", directory_env_var);
+            println!("Please set the {} environment variable to an existing directory", SEMAPHORE_SUPPORT_DIR);
             std::process::exit(1);
         }
     };
     if !Path::new(&directory).exists() {
-        println!("{} does not exist, please set {} env var to an existing directory", directory, directory_env_var);
+        println!("{} does not exist, please set {} env var to an existing directory", directory, SEMAPHORE_SUPPORT_DIR);
         std::process::exit(1);
     }
     if !Path::new(&directory).is_dir() {
-        println!("{} is not a directory, please set the env var {} to a directory", directory, directory_env_var);
+        println!("{} is not a directory, please set the env var {} to a directory", directory, SEMAPHORE_SUPPORT_DIR);
         std::process::exit(1);
     }
     let slack_id_mapping_file = format!("{}/slack_id_mapping.txt", directory);
