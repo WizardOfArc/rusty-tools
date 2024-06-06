@@ -1,10 +1,8 @@
 use std::collections::HashMap;
-use std::fs::OpenOptions;
 use std::fs::read_to_string;
 use std::env;
 use std::collections::HashSet;
-use std::io::{self, stdin, BufRead};
-use std::ops::ShlAssign;
+use std::io::stdin;
 use std::path::Path;
 use serde::{Deserialize, Serialize};
 use serde_json::Result;
