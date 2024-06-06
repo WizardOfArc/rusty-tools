@@ -256,7 +256,22 @@ fn prep_for_new_release(state: &mut SemaphoreState) {
 
 fn main() {
     let args: Args = Args::parse();
-    let directory = env::var("SEMAPHORE_SUPPORT_DIR").unwrap();
+    // let directory = env::var("SEMAPHORE_SUPPORT_DIR").unwrap();
+    let directory = match env::var("SEMAPHORE_SUPPORT_DIR") {
+        Ok(val) => val,
+        Err(_) => {
+            println!("Please set the SEMAPHORE_SUPPORT_DIR environment variable to an existing directory");
+            std::process::exit(1);
+        }
+    };
+    if !Path::new(&directory).exists() {
+        println!("{} does not exist, please set SEMAPHORE_SUPPORT_DIR env var to an existing directory", directory);
+        std::process::exit(1);
+    }
+    if !Path::new(&directory).is_dir() {
+        println!("{} is not a directory, please set the env var SEMAPHORE_SUPPORT_DIR to a directory", directory);
+        std::process::exit(1);
+    }
     let slack_id_mapping_file = format!("{}/slack_id_mapping.txt", directory);
     let semaphore_state_file = format!("{}/semaphore_state.json", directory);
     let mut semaphore_state: SemaphoreState;
