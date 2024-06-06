@@ -195,13 +195,10 @@ fn update_release_tag(state: &mut SemaphoreState) {
 
 fn prompt_merge_state(state: &SemaphoreState) {
     let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
-    
     let mut lines: Vec<String> = Vec::new();
-
     let _ = &state.contributors.iter().for_each(|contributor| {
         lines.push(format!("{}", contributor));
     });
-
     lines.push("\nWhat is your merge status?".to_string());
     lines.push(":sonic-wait: (in merge queue)".to_string());
     lines.push(":github-merged-pr: (merged)".to_string());
