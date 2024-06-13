@@ -234,7 +234,7 @@ fn notify_release_complete(state: &SemaphoreState) {
     } else {
         lines.push("\nNo configs to update".to_string());
     }
-    lines.push("\nRelease is complete - please confirm".to_string());
+    lines.push("\nRelease is complete".to_string());
     let result = lines.join("\n");
     ctx.set_contents(result).unwrap();
     println!("Copied to clipboard - paste in Slack");
