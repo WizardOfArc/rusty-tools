@@ -22,6 +22,10 @@ struct Point {
     y: f64,
 }
 
+const NIK_PURPLE: &str = "#3F006A";
+const DOUG_RED: &str = "#B3050D";
+const AZI_BLUE: &str = "#0000FF";
+
 impl Point {
     fn new(x: f64, y: f64) -> Point {
         Point { x, y }
@@ -140,30 +144,44 @@ impl Path {
     }
 }
 
+struct Crescent {
+    start: Point,
+    end: Point,
+    thickness: f64,
+    radius: f64,
+    color: String,
+}
+
+
+impl Crescent {
+    fn new(start: Point, end: Point, thickness: f64, radius: f64, color: String) -> Crescent {
+        Crescent { start, end, thickness, radius, color }
+    }
+
+    fn to_svg(&self) -> String {
+        let thickness = self.thickness;
+        let small_radius = self.radius;
+        let large_radius = self.radius * thickness;
+        let start = self.start.clone();
+        let end = self.end.clone();
+        let arc1 = Arc::new(end, small_radius, ArcPiece::Small, SweepDirection::Clockwise);
+        let arc2 = Arc::new(start.clone(), large_radius, ArcPiece::Small, SweepDirection::CounterClockwise);
+        let arc1_svg = arc1.to_svg();
+        let arc2_svg = arc2.to_svg();
+        let path_d = format!("M {} {} {} {}", &start.x, &start.y, arc1_svg, arc2_svg);
+        format!(
+            "<path d=\"{}\" stroke=\"{}\" stroke-width=\"1\" fill=\"{}\"/>",
+            path_d, self.color, self.color)
+    }
+}
+
 fn distance(p1: &Point, p2: &Point) -> f64 {
     ((p1.x - p2.x).powi(2) + (p1.y - p2.y).powi(2)).sqrt()
 }
 
-
-fn radius_of_bottom_arc(bottom_left: &Point, center: &Point) -> f64 {
-    let midpoint = bottom_left.midpoint(center);
-    let perp_slope = match bottom_left.slope_to(center) {
-        Some(slope) if slope == 0.0 => None,
-        Some(slope) => Some(-1.0 / slope),
-        None => Some(0.0),
-    };
-    let displacement = midpoint.x_displacement(center);
-    // lower_left x + displacement = circum_center_x
-    // lower_left y + displacement * perpSlope = circum_center_y
-    match perp_slope {
-        Some(perpSlope) => {
-            let circum_center_x = bottom_left.x + displacement;
-            let circum_center_y = bottom_left.y + displacement * perpSlope;
-            distance(&midpoint, &Point::new(circum_center_x, circum_center_y))
-        },
-        None => distance(&midpoint, &Point::new(center.x, bottom_left.y))
-    }
-}   
+fn dot_at(center: &Point) -> Circle {
+    Circle::new(center.clone(), 1.0, "black".to_string(), 1.0)
+}
 
 #[derive(Debug, Parser)]
 #[command(author, version, about, long_about = None)]
@@ -171,18 +189,54 @@ struct Args {
     padding: f64,
     width: f64,
     height: f64,
-    bottom_gap_height: f64,
-    bottom_gap_width: f64,
     circle_radius: f64,
-    color: String,
-    stroke_width: f64,
+    circle_stroke_width: f64,
     wing_arc_radius: f64, 
+    wing_arc_thickness: f64, 
+    horizon_radius: f64, 
+    horizon_thickness: f64, 
+    vb_x: f64,
+    vb_y: f64,
+    vb_width: f64,
+    vb_height: f64,
     svg_file: String,
 }
 
-fn main() {
-    let args: Args = Args::parse();
 
+fn main() {
+    /*
+      refactor this to write crescents instead of arcs
+      crescent is defined as a closed path 
+      M startpoint
+      A smaller radius smaller radius 0 0 sweep endpoint
+      A larger radius larger radius 0 0 reverse sweep startpoint
+      a crescent has a start point, an end point, a thickness, and a curviness
+      curviness is inverse to the radius of the component arc with the smaller radius
+      thickness is the difference between the two radii
+
+      crescent thickness ranges from 1 sliver to a semi-circle
+      thickness can be defined bewteen a minumum near but not exactly 0 and a maximum near but not exactly PI/2
+      the difference of the radius will cotangent of that number added to the curve defining radius
+      difference = thickness.cos()/thickness.sin() (put some guardrails to defend against 0s)
+      curviness ranges from almost flat to a semi-circular arc (where radius is half the width of the crescent)
+
+      logo points
+      UL UR
+      LL LR
+      Center
+      Bottom Middle: Midpoint of LL and LR
+      Left Quarter: Midpoint of LL and Bottom Middle
+      Right Quarter: Midpoint of LR and Bottom Middle
+
+      Circle centered at Center with radius circle_radius
+      horizon from LL to LR small radius calculated with function
+      large radius is small radius + horizon thickness factor
+      left wing from UL to Left Quarter with small radius wing_arc_radius
+      right wing from UR to Right Quarter with small radius wing_arc_radius
+      large radius is small radius + wing thickness factor
+     */
+    let args: Args = Args::parse();
+    println!("{:?}", args);
     let upper_left = Point::new(args.padding,args.padding);
     let upper_right = upper_left.to_the_right(args.width);
     let lower_left = upper_left.underneath(args.height);
@@ -193,28 +247,37 @@ fn main() {
     let a = distance(&lower_left, &center);
     let b = distance(&lower_right, &center);
 
-    let bottom_arc_radius = radius_of_bottom_arc(&lower_left, &center);
-    
-    let left_gap = bottom_mid.d2_offset(-args.bottom_gap_width, -args.bottom_gap_height);
-    let right_gap = bottom_mid.d2_offset(args.bottom_gap_width, -args.bottom_gap_height);
-
-    let path_steps: Vec<PathStep> = vec![
-        PathStep::MoveTo(upper_left.clone()),
-        PathStep::Arc(Arc::new(left_gap, args.wing_arc_radius, ArcPiece::Small, SweepDirection::CounterClockwise)),
-        PathStep::MoveTo(upper_right.clone()),
-        PathStep::Arc(Arc::new(right_gap, args.wing_arc_radius, ArcPiece::Small, SweepDirection::Clockwise)),
-        PathStep::MoveTo(lower_left),
-        PathStep::Arc(Arc::new(lower_right, bottom_arc_radius, ArcPiece::Small, SweepDirection::Clockwise)),
-    ];
-
-    let path = Path::from_steps(path_steps, args.color.clone(), args.stroke_width);
-    let circle = Circle::new(center, args.circle_radius, args.color, args.stroke_width);
+    let circle = Circle::new(center, args.circle_radius, AZI_BLUE.to_string(), args.circle_stroke_width);
+    let horizon = Crescent::new(
+         lower_left.clone().midpoint(&bottom_mid),
+        lower_right.clone().midpoint(&bottom_mid),
+          args.horizon_thickness,
+          args.horizon_radius,
+            DOUG_RED.to_string()
+    );
+    let left_wing = Crescent::new(
+         lower_left.clone().midpoint(&bottom_mid),
+        upper_left.clone(),
+          args.wing_arc_thickness.clone(),
+           args.wing_arc_radius.clone(),
+            NIK_PURPLE.to_string()
+    );
+    let right_wing = Crescent::new(
+         upper_right.clone(),
+        lower_right.clone().midpoint(&bottom_mid),
+          args.wing_arc_thickness,
+           args.wing_arc_radius,
+            NIK_PURPLE.to_string());
 
     let mut lines_to_write: Vec<String> = Vec::new(); 
-    lines_to_write.push("<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" viewBox=\"40 45 180 140\">".to_string());
+    lines_to_write.push(format!("<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" viewBox=\"{} {} {} {}\">", args.vb_x, args.vb_y, args.vb_width, args.vb_height));
     lines_to_write.push(format!("  {}", circle.to_svg()));
-    lines_to_write.push(format!("  {}", path.to_svg()));
+    lines_to_write.push(format!("  {}", horizon.to_svg()));
+    lines_to_write.push(format!("  {}", left_wing.to_svg()));
+    lines_to_write.push(format!("  {}", right_wing.to_svg()));
     lines_to_write.push("</svg>".to_string());
     let to_write = lines_to_write.join("\n");
     write(args.svg_file, to_write).expect("Unable to write file");
+
+
 }
