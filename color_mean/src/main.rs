@@ -42,9 +42,13 @@ fn hex_valid(hex: &str) -> Result<&str, HexError> {
     if hex.len() != 6 {
         return Err(HexError{hex, message: "hex length needs to be 6".to_string()});
     }
-    if !hex.chars().all(|c| c.is_ascii_hexdigit()) {
-        return Err(HexError{hex, message: "Invalid hex digit".to_string()});
-    }
+    for c in hex.chars() {
+        if !c.is_ascii_hexdigit() {
+            return Err(
+                HexError{hex, message: format!("Invalid hex digit '{}'", c)}
+            );
+        }
+    };
     Ok(hex)
 }
 
