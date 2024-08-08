@@ -76,25 +76,14 @@ impl SemaphoreState {
 
 
 fn update_configs(state: &mut SemaphoreState) {
-    let mut proceed: String = String::new();
-    loop {
-        println!("Enter config name ('none' if there are none 'all' for all) otherwise one domain at a time ('q' to end)");
-        stdin().read_line(&mut proceed).expect("Failed to read line");
-        let config = proceed.trim();
-        match config {
-            "q" => break,
-            "none" => {
-                state.configs_to_update.clear();
-                break
-            },
-            "all" => {
-                state.configs_to_update.clear();
-                state.configs_to_update.push("all".to_string());
-                break
-            }
-            _ => state.configs_to_update.push(config.to_string()),
-        }
-    }
+    let mut configs_list_string: String = String::new();
+    state.configs_to_update.clear();
+    println!("Enter domains to update configs for as a comma separated list - no space");
+    stdin().read_line(&mut configs_list_string).expect("Failed to read line");
+    let configs: Vec<String> = configs_list_string.split(",").map(|s| s.trim().to_string()).collect();
+    configs.iter().for_each(|config_domain| {
+        state.configs_to_update.push(config_domain.to_owned());
+    });
 }
 
 fn update_new_domains(state: &mut SemaphoreState) {
