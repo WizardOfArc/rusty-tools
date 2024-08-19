@@ -11,6 +11,11 @@ struct Args {
   word_b: String,
 }
 
+enum Direction {
+    Forward,
+    Backward,
+}
+
 
 // make a function that gets a new word based on swapping two chars at given indexes
 fn new_string_from_swap(word: &str, idx1: usize, idx2: usize) -> String {
@@ -41,7 +46,7 @@ fn get_swappable_indexes(word_a: &str, word_b: &str) -> Vec<usize> {
 }
 
 
-fn path_from_parent_mapping(mapping: &HashMap<String, Option<String>>, child: &String) -> Vec<String> {
+fn path_from_parent_mapping(mapping: &HashMap<String, Option<String>>, child: &String, direction: Direction) -> Vec<String> {
     let mut path: Vec<String> = Vec::new();
     if !mapping.contains_key(child) {
         panic!("Something is wrong  - child is not in path");
@@ -57,13 +62,15 @@ fn path_from_parent_mapping(mapping: &HashMap<String, Option<String>>, child: &S
             None => break,
         }
     }
-    path.into_iter().rev().collect()
+    match direction {
+        Direction::Forward => path,
+        Direction::Backward => path.into_iter().rev().collect()
+    }
 }
 
 fn path_from_both_parent_mapping(forward_mapping: &HashMap<String, Option<String>>, backward_mapping: &HashMap<String, Option<String>>, child: &String) -> Vec<String> {
-    let mut forward_path: Vec<String> = path_from_parent_mapping(forward_mapping, child);
-    let mut reverse_path: Vec<String> = path_from_parent_mapping(backward_mapping, child);
-    reverse_path.reverse();
+    let mut forward_path: Vec<String> = path_from_parent_mapping(forward_mapping, child, Direction::Backward);
+    let reverse_path: Vec<String> = path_from_parent_mapping(backward_mapping, child, Direction::Forward);
     for word in reverse_path[1..].iter() {
         forward_path.push(word.to_string());
     }
@@ -117,12 +124,10 @@ fn find_shortest_path_bewteen_words(word_a: &str, word_b: &str) -> Vec<String> {
                   word_queue.push_back(new_word.clone());
               }
               if reverse_new_word == word_a.to_string() {
-                  let mut path = path_from_parent_mapping(&reverse_parent_mapping, &reverse_new_word);
-                  path.reverse();
-                  return path;
+                  return path_from_parent_mapping(&reverse_parent_mapping, &reverse_new_word, Direction::Forward);
               }
               if new_word == word_b.to_string() {
-                  return path_from_parent_mapping(&parent_mapping, &new_word)
+                  return path_from_parent_mapping(&parent_mapping, &new_word, Direction::Backward)
               }
             }
         }
