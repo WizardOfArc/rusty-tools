@@ -27,9 +27,7 @@ fn new_string_from_swap(word: &str, idx1: usize, idx2: usize) -> String {
         panic!("first index overlaps second index");
     }
     let mut char_vec: Vec<char> = word.chars().collect();
-    let swap_holder = char_vec[idx1];
-    char_vec[idx1] = char_vec[idx2];
-    char_vec[idx2] = swap_holder;
+    char_vec.swap(idx1, idx2);
     char_vec.iter().collect::<String>()
 }
 
@@ -67,14 +65,9 @@ fn path_from_parent_mapping(mapping: &HashMap<String, Option<String>>, child: &S
     }
     path.push(child.clone());
     let mut current_word = mapping.get(child).unwrap();
-    loop {
-        match current_word {
-            Some(word) => {
-                path.push(word.clone());
-                current_word = mapping.get(word).unwrap();
-            },
-            None => break,
-        }
+    while let Some(word) = current_word {
+            path.push(word.clone());
+            current_word = mapping.get(word).unwrap();
     }
     match direction {
         Direction::Forward => path,
@@ -106,7 +99,7 @@ fn find_shortest_path_bewteen_words(word_a: &str, word_b: &str) -> Vec<String> {
     reverse_seen_words.insert(word_b.to_string());
     front_queue.push(word_a.to_string(), 0);
     back_queue.push(word_b.to_string(), 0);
-    while front_queue.len() > 0 && back_queue.len() > 0 {
+    while !front_queue.is_empty() && !back_queue.is_empty() {
         match front_queue.pop() {
             None => panic!("This shouldn't happen"),
             Some((current_word, _)) => {
@@ -124,14 +117,15 @@ fn find_shortest_path_bewteen_words(word_a: &str, word_b: &str) -> Vec<String> {
                         continue;
                     }
                     seen_words.insert(new_word.clone());
-                    if !parent_mapping.contains_key(&new_word.clone()){
-                        parent_mapping.insert(new_word.clone(), Some(current_word.clone()));
+             
+                    if let std::collections::hash_map::Entry::Vacant(e) = parent_mapping.entry(new_word.clone()) { 
+                        e.insert(Some(current_word.clone())); 
                         front_queue.push(
                             new_word.clone(),
                             get_closeness(&new_word, word_b)
                         );
                     }
-                    if new_word == word_b.to_string() {
+                    if new_word == *word_b {
                         return path_from_parent_mapping(&parent_mapping, &new_word, Direction::Backward)
                     }
                     }
