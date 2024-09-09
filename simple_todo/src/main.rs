@@ -10,8 +10,9 @@ const TODO_SUPPORT_FILE: &str = "TODO_SUPPORT_FILE";
 
 #[derive(clap::ValueEnum, Clone, Debug)]
 enum Command {
-    Show,
     Add,
+    CleanUp,
+    Show,
 }
 
 #[derive(Debug, Parser)]
@@ -72,6 +73,42 @@ fn show_todo(filename: String) {
     }
 }
 
+fn clean_up(filename: String) {
+    let now = Local::now();
+    let mut todo_entries: Vec<TodoEntry> = Vec::new();
+    if Path::new(&filename).exists() {
+        match read_to_string(&filename) {
+            Err(error) => { println!("Error reading file: {}", error) },
+            Ok(contents) => {
+                let todo_rows: Vec<&str> = contents.split("\n").collect();
+                for row in todo_rows {
+                    match TodoEntry::from_row(row.trim().to_string()){
+                        None => {},
+                        Some(todo) => {
+                            let due_date = NaiveDateTime::parse_from_str(&todo.due_date, "%Y%m%d%H%M").unwrap();
+                            if due_date < now.naive_local() {
+                                println!("Was {} compeleted? (y/n)", todo.task_desciption);
+                                let mut response = String::new();
+                                stdin().read_line(&mut response).unwrap();
+                                if response.trim() == "y" {
+                                    println!("Cleaning up: {}", todo.task_desciption);
+                                } else {
+                                    todo_entries.push(todo);
+                                }
+                            } else {
+                                todo_entries.push(todo);
+                            }
+                        },
+                    }
+                }
+            }
+        }
+    }
+
+    let contents = todo_entries.into_iter().map(|t| t.make_row()).collect::<Vec<String>>().join("");
+    std::fs::write(&filename, contents).unwrap();
+}
+
 fn add_todo(filename: String) {
     let now = Local::now();
     let now_string = now.format("%Y%m%d%H%M").to_string();
@@ -118,6 +155,7 @@ fn main() {
             match args.command {
                 Command::Show => show_todo(filename),
                 Command::Add => add_todo(filename),
+                Command::CleanUp => clean_up(filename),
            }
         }
     }
