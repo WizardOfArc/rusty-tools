@@ -61,7 +61,7 @@ fn show_todo(filename: String) {
         match read_to_string(filename) {
             Err(error) => { println!("Error reading file: {}", error) },
             Ok(contents) => {
-                let todo_rows: Vec<&str> = contents.split("\n").collect();
+                let todo_rows: Vec<&str> = contents.split('\n').collect();
                 for row in todo_rows {
                     match TodoEntry::from_row(row.trim().to_string()){
                         None => {},
@@ -80,7 +80,7 @@ fn clean_up(filename: String) {
         match read_to_string(&filename) {
             Err(error) => { println!("Error reading file: {}", error) },
             Ok(contents) => {
-                let todo_rows: Vec<&str> = contents.split("\n").collect();
+                let todo_rows: Vec<&str> = contents.split('\n').collect();
                 for row in todo_rows {
                     match TodoEntry::from_row(row.trim().to_string()){
                         None => {},
@@ -105,7 +105,7 @@ fn clean_up(filename: String) {
         }
     }
 
-    let contents = todo_entries.into_iter().map(|t| t.make_row()).collect::<Vec<String>>().join("");
+    let contents = todo_entries.into_iter().map(|t| t.make_row()).collect::<Vec<String>>().join("\n");
     std::fs::write(&filename, contents).unwrap();
 }
 
@@ -117,7 +117,7 @@ fn add_todo(filename: String) {
         match read_to_string(&filename) {
             Err(error) => { println!("Error reading file: {}", error) },
             Ok(contents) => {
-                let todo_rows: Vec<&str> = contents.split("\n").collect();
+                let todo_rows: Vec<&str> = contents.split('\n').collect();
                 for row in todo_rows {
                     match TodoEntry::from_row(row.trim().to_string()){
                         None => {},
@@ -143,7 +143,7 @@ fn add_todo(filename: String) {
     };
     todo_entries.push(new_entry);
 
-    let contents = todo_entries.into_iter().map(|t| t.make_row()).collect::<Vec<String>>().join("");
+    let contents = todo_entries.into_iter().map(|t| t.make_row()).collect::<Vec<String>>().join("\n");
     std::fs::write(&filename, contents).unwrap();
 }
 
