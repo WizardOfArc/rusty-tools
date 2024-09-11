@@ -58,6 +58,7 @@ fn show_todo(filename: String) {
     if !Path::new(&filename).exists() {
         println!("The file, {}, does not exist!", filename);
     } else {
+        let mut todos_to_show: Vec<TodoEntry> = Vec::new();
         match read_to_string(filename) {
             Err(error) => { println!("Error reading file: {}", error) },
             Ok(contents) => {
@@ -65,10 +66,18 @@ fn show_todo(filename: String) {
                 for row in todo_rows {
                     match TodoEntry::from_row(row.trim().to_string()){
                         None => {},
-                        Some(todo) => { println!("{}", todo) },
+                        Some(todo) => todos_to_show.push(todo),
                     }
                 }
             }
+        }
+        if todos_to_show.is_empty() {
+            println!("No Todo's to show.");
+        } else {
+            todos_to_show.sort_by(|a,b| a.due_date.cmp(&b.due_date));
+            let lines = todos_to_show.iter().map(|todo| format!("{}", todo)).collect::<Vec<_>>();
+            let to_print = lines.join("\n");
+            println!("{to_print}")
         }
     }
 }
