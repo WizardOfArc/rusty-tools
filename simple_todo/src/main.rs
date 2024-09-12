@@ -24,12 +24,12 @@ struct Args {
 struct TodoEntry {
     create_date: String, // in YYYYmmddhhmm form
     due_date: String, // in YYYYmmddhhmm form
-    task_desciption: String,
+    task_description: String,
 }
 
 impl TodoEntry {
     fn make_row(&self) -> String {
-        format!("{}|>{}|>{}", self.create_date, self.task_desciption, self.due_date)
+        format!("{}|>{}|>{}", self.create_date, self.task_description, self.due_date)
     }
 
     fn from_row(todo_row: String) -> Option<TodoEntry> {
@@ -40,7 +40,7 @@ impl TodoEntry {
         } else {
             Some(TodoEntry {
                 create_date: pieces[0].to_string(),
-                task_desciption: pieces[1].to_string(),
+                task_description: pieces[1].to_string(),
                 due_date: pieces[2].to_string(),
             })
         }
@@ -49,7 +49,7 @@ impl TodoEntry {
 
 impl fmt::Display for TodoEntry {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "({})\n{}\n[Due: {}]\n===\n", self.create_date, self.task_desciption, self.due_date)
+        write!(f, "({})\n{}\n[Due: {}]\n===\n", self.create_date, self.task_description, self.due_date)
     }
 }
 
@@ -74,7 +74,6 @@ fn show_todo(filename: String) {
         if todos_to_show.is_empty() {
             println!("No Todo's to show.");
         } else {
-            todos_to_show.sort_by(|a,b| a.due_date.cmp(&b.due_date));
             let lines = todos_to_show.iter().map(|todo| format!("{}", todo)).collect::<Vec<_>>();
             let to_print = lines.join("\n");
             println!("{to_print}")
@@ -96,11 +95,11 @@ fn clean_up(filename: String) {
                         Some(todo) => {
                             let due_date = NaiveDateTime::parse_from_str(&todo.due_date, "%Y%m%d%H%M").unwrap();
                             if due_date < now.naive_local() {
-                                println!("Was {} compeleted? (y/n)", todo.task_desciption);
+                                println!("Was {} compeleted? (y/n)", todo.task_description);
                                 let mut response = String::new();
                                 stdin().read_line(&mut response).unwrap();
                                 if response.trim() == "y" {
-                                    println!("Cleaning up: {}", todo.task_desciption);
+                                    println!("Cleaning up: {}", todo.task_description);
                                 } else {
                                     todo_entries.push(todo);
                                 }
@@ -114,8 +113,12 @@ fn clean_up(filename: String) {
         }
     }
 
-    let contents = todo_entries.into_iter().map(|t| t.make_row()).collect::<Vec<String>>().join("\n");
+    let contents = todos_to_print(todo_entries);
     std::fs::write(&filename, contents).unwrap();
+}
+
+fn todos_to_print(todos: Vec<TodoEntry>) -> String {
+    todos.into_iter().map(|t| t.make_row()).collect::<Vec<String>>().join("\n")
 }
 
 fn add_todo(filename: String) {
@@ -147,12 +150,12 @@ fn add_todo(filename: String) {
 
     let new_entry = TodoEntry {
         create_date: now_string,
-        task_desciption: description.trim().to_string(),
+        task_description: description.trim().to_string(),
         due_date: due.trim().to_string(),
     };
     todo_entries.push(new_entry);
-
-    let contents = todo_entries.into_iter().map(|t| t.make_row()).collect::<Vec<String>>().join("\n");
+    todo_entries.sort_by(|a,b| a.due_date.cmp(&b.due_date));
+    let contents = todos_to_print(todo_entries);
     std::fs::write(&filename, contents).unwrap();
 }
 
@@ -167,5 +170,70 @@ fn main() {
                 Command::CleanUp => clean_up(filename),
            }
         }
+    }
+}
+
+pub fn add(left: usize, right: usize) -> usize {
+    left + right
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_works() {
+        let result = add(2, 2);
+        assert_eq!(result, 4);
+    }
+
+    #[test]
+    fn sorting_works() {
+        let mut todos = vec!(
+            TodoEntry {
+              create_date: "xxx".to_string(),
+              due_date: "999".to_string(),
+              task_description: "desc".to_string(),
+            },
+            TodoEntry {
+              create_date: "xxx".to_string(),
+              due_date: "909".to_string(),
+              task_description: "desc".to_string(),
+            },
+            TodoEntry {
+              create_date: "xxx".to_string(),
+              due_date: "109".to_string(),
+              task_description: "desc".to_string(),
+            },
+            TodoEntry {
+              create_date: "xxx".to_string(),
+              due_date: "666".to_string(),
+              task_description: "desc".to_string(),
+            },
+        );
+        let expected_todos = vec!(
+            TodoEntry {
+              create_date: "xxx".to_string(),
+              due_date: "109".to_string(),
+              task_description: "desc".to_string(),
+            },
+            TodoEntry {
+              create_date: "xxx".to_string(),
+              due_date: "666".to_string(),
+              task_description: "desc".to_string(),
+            },
+            TodoEntry {
+              create_date: "xxx".to_string(),
+              due_date: "909".to_string(),
+              task_description: "desc".to_string(),
+            },
+            TodoEntry {
+              create_date: "xxx".to_string(),
+              due_date: "999".to_string(),
+              task_description: "desc".to_string(),
+            },
+        );
+        todos.sort_by(|a,b| a.due_date.cmp(&b.due_date));
+        assert_eq!(todos_to_print(todos), todos_to_print(expected_todos));
     }
 }
