@@ -6,11 +6,47 @@ use std::io::stdin;
 use std::path::Path;
 use serde::{Deserialize, Serialize};
 use serde_json::Result;
+
+use slack_hook::{PayloadBuilder, Slack};
 use clap::Parser; 
 use clipboard::ClipboardProvider;
 use clipboard::ClipboardContext;
 
 const SEMAPHORE_SUPPORT_DIR: &str = "SEMAPHORE_SUPPORT_DIR";
+const WEBHOOK_KEY: &str = "SEARCH_SLACK_WEBHOOK";
+// const TARGET_CHANNEL: &str = "#search";
+const TARGET_CHANNEL: &str = "#ferris-fans";
+const ICON_EMOJI: &str = ":cool-s:";
+
+type SemaphoreResult<T> = std::result::Result<T, SemaphoreError>;
+
+#[derive(Debug)]
+enum SemaphoreError {
+    MissingWebhook,
+    UnableToMakeSlackClient(String),
+    UnableToBuildPayload(String),
+    UnableToSendMessage(String),
+}
+
+impl SemaphoreError {
+    pub fn to_string(&self) -> String {
+        match self {
+            SemaphoreError::MissingWebhook => "Missng Webhook Env Var".to_string(),
+            SemaphoreError::UnableToMakeSlackClient(e) => format!("Unable to make slack client: {}", e),
+            SemaphoreError::UnableToBuildPayload(e) => format!("Unable to build slack payload: {}", e),
+            SemaphoreError::UnableToSendMessage(e) => format!("Unable to send slack message: {}", e),
+        }
+    }
+}
+
+impl std::fmt::Display for SemaphoreError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.to_string())
+    }
+}
+
+impl std::error::Error for SemaphoreError {}
+
 #[derive(clap::ValueEnum, Clone, Debug)]
 enum Command {
     NewRelease,
@@ -39,6 +75,17 @@ struct SemaphoreState {
     new_sites: Vec<String>,
     configs_to_update: Vec<String>,
     sites_to_delete: Vec<String>,
+}
+
+fn send_to_slack(message: &str) -> SemaphoreResult<()> {
+    let webhook_url = env::var(WEBHOOK_KEY).map_err(|_| SemaphoreError::MissingWebhook)?;
+    let slack = Slack::new(webhook_url.as_str()).map_err(|error| SemaphoreError::UnableToMakeSlackClient(error.to_string()))?;
+    let payload = PayloadBuilder::new()
+        .text(message)
+        .channel(TARGET_CHANNEL)
+        .icon_emoji(ICON_EMOJI)
+        .build().map_err(|e| SemaphoreError::UnableToBuildPayload(e.to_string()))?;
+    slack.send(&payload).map_err(|e| SemaphoreError::UnableToSendMessage(e.to_string()))
 }
 
 impl SemaphoreState {
@@ -193,6 +240,7 @@ fn prompt_merge_state(state: &SemaphoreState) {
     lines.push(":github-merged-pr: (merged)".to_string());
     lines.push(":tuzki-give-up: (I'm pulling out of release)".to_string());
     let result = lines.join("\n");
+    send_to_slack(&result).unwrap();
     ctx.set_contents(result).unwrap();
     println!("Copied to clipboard - paste in Slack");
 }
@@ -208,6 +256,7 @@ fn notify_on_stage(state: &SemaphoreState) {
     lines.push(":thumbsup: (all good)".to_string());
     lines.push(":dont-ship-it: (I've got to revert)".to_string());
     let result = lines.join("\n");
+    send_to_slack(&result).unwrap();
     ctx.set_contents(result).unwrap();
     println!("Copied to clipboard - paste in Slack");
 }
@@ -225,8 +274,9 @@ fn notify_release_complete(state: &SemaphoreState) {
     }
     lines.push("\nRelease is complete".to_string());
     let result = lines.join("\n");
+    send_to_slack(&result).unwrap();
     ctx.set_contents(result).unwrap();
-    println!("Copied to clipboard - paste in Slack");
+    // replace with sending to slack
 }
 
 fn prep_for_new_release(state: &mut SemaphoreState) {
