@@ -6,19 +6,22 @@ use chrono::prelude::*;
 use serde::{Serialize, Deserialize};
 
 const POSTS_FILE_VAR_NAME: &str = "BLOG_POSTS_FILE";
+const POSTS_DIR_VAR_NAME: &str = "BLOG_POSTS_DIR";
 
 type BlogResult<T> = std::result::Result<T, BlogError>;
 
 #[derive(Debug)]
 enum BlogError {
     UnableToReadPostsFile,
-    UnableToParsePostsFile,
-    UnableToWritePostsFile,
+    SinglePostFileCouldNotBeRead,
+    PostsFileUnParsable,
+    CouldNotWritePostsFile,
 }
 
 #[derive(clap::ValueEnum, Clone, Debug)]
 enum Command {
     AddPost,
+    AddPostFromFile,
     ListPosts,
 }
 
@@ -52,6 +55,24 @@ impl Post {
             content,
         }
     }
+
+    fn from_file(filename: &str) -> BlogResult<Post> {
+       println!("Making a post from file [ {} ]", filename);
+       let file_contents = std::fs::read_to_string(filename).map_err(|_| BlogError::SinglePostFileCouldNotBeRead)?;
+       let lines: Vec<String> = file_contents.split("\n").filter(|s| !s.is_empty()).map(str::to_string).collect();
+       if lines.is_empty() {
+           println!("Post entry file is empty");
+           Err(BlogError::SinglePostFileCouldNotBeRead)
+       } else if lines.len() == 1 {
+           println!("Post entry file needs at least 2 lines");
+           Err(BlogError::SinglePostFileCouldNotBeRead)
+
+       } else {
+           let title = lines[0].trim().to_string();
+           let body = lines[1..].iter().map(|s| s.trim().to_string()).collect::<Vec<_>>().join("^");
+           Ok(Post{title, body})
+       }
+    }
 }
 
 fn create_post() -> Post {
@@ -83,16 +104,16 @@ struct BlogPostsForJson {
 
 impl BlogPostsForJson {
     fn from_json_string(json_string: &str) -> BlogResult<BlogPostsForJson>{
-        serde_json::from_str(json_string).map_err(|_| BlogError::UnableToParsePostsFile)
+        serde_json::from_str(json_string).map_err(|_| BlogError::PostsFileUnParsable)
     }
 
     fn to_json_string(&self) -> BlogResult<String> {
-        serde_json::to_string(self).map_err(|_| BlogError::UnableToWritePostsFile)
+        serde_json::to_string(self).map_err(|_| BlogError::CouldNotWritePostsFile)
     }
 
     fn save_to_file(&self, filename: &str) -> BlogResult<()> {
         let json_string = self.to_json_string()?;
-        std::fs::write(filename, json_string).map_err(|_| BlogError::UnableToWritePostsFile)
+        std::fs::write(filename, json_string).map_err(|_| BlogError::CouldNotWritePostsFile)
     }
 
     fn from_file(filename: &str) -> BlogResult<BlogPostsForJson> {
@@ -129,6 +150,23 @@ fn main() {
                     println!("{}", content);
                 }
                 println!("-----------------");
+            }
+        }
+        Command::AddPostFromFile => {
+            println!("Enter name of single post file in your Blog Posts directory");
+            let dir = env::var(POSTS_DIR_VAR_NAME).expect("No blog posts drectory specified");
+            let mut single_post_filename: String = String::new();
+            stdin().read_line(&mut single_post_filename).expect("Could not read Single Post File");
+            let full_path = format!("{}/{}", dir, single_post_filename.trim());
+            match Post::from_file(&full_path) {
+              Ok(post) => {
+                let mut blog_posts = BlogPostsForJson::from_file(&filename).unwrap_or_else(|_| {
+                    BlogPostsForJson { posts: vec![] }
+                });
+                blog_posts.add_post(post);
+                blog_posts.save_to_file(&filename).expect("Unable to save blog post");
+              }
+              Err(e) => println!("Could not make post from file {:?}", e)
             }
         }
     }
