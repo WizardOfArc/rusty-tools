@@ -122,7 +122,7 @@ impl BlogPostsForJson {
     }
 
     fn add_post(&mut self, post: Post) {
-        self.posts.push(post.for_json());
+        self.posts.insert(0, post.for_json());
     }
 }
 
