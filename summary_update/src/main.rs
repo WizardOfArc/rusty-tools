@@ -42,6 +42,8 @@ fn make_header(parsed_date: &NaiveDate) -> String {
 
 fn main() {
     let args = Args::parse();
+    let team_update_dir = std::env::var("TEAM_UPDATE_DIR").unwrap();
+    std::env::set_current_dir(team_update_dir).unwrap();
     match validate_filename(&args.filename) {
         Ok(parsed_date) => {
             let summary_filename = make_summary_filename(&parsed_date);
