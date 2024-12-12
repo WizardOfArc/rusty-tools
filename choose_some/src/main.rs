@@ -15,6 +15,20 @@ struct StackFrame {
     number_to_choose: usize,
 }
 
+fn get_combo_compliment(items: Vec<String>, combo: Vec<String>) -> Vec<String> {
+    let mut new_combo: Vec<String> = Vec::new();
+    let old_combo: HashSet<String> = HashSet::from_iter(combo);
+    let mut index = 0;
+    while index < items.len() {
+        let item_to_check = &items[index];
+        if !old_combo.contains(item_to_check) {
+            new_combo.push(item_to_check.to_string());
+        }
+        index += 1;
+    }
+    new_combo
+}
+
 fn get_combos(items: Vec<String>, number: usize) -> HashSet<Vec<String>> {
     let mut the_stack: Vec<StackFrame> = Vec::new();
     let mut combo_list: HashSet<Vec<String>> = HashSet::new();
@@ -50,22 +64,23 @@ fn get_combos(items: Vec<String>, number: usize) -> HashSet<Vec<String>> {
 
 fn main() {
     let args: Args = Args::parse();
-    let item_list: Vec<String> = args.items.split("|").map(|s| s.trim().to_string()).collect();
-    println!("Hello, You gave me these items:{:?}, and this number:{}", item_list, args.number);
+    let item_list: Vec<String> = args.items.split(",").map(|s| s.trim().to_string()).collect();
     let mut combos: Vec<Vec<String>> = Vec::new();
     if args.number >= item_list.len() {
         combos.push(item_list)
-    } else {
+    } else if args.number < (item_list.len() + 1) / 2 {
         combos = get_combos(item_list, args.number).into_iter().collect();
+    } else {  // do the inverse
+        let cloned_item_list = item_list.clone();
+        let compliment_number = cloned_item_list.len() - args.number;
+        let inverted_combos: Vec<Vec<String>> = get_combos(cloned_item_list, compliment_number).into_iter().collect();
+        combos = inverted_combos.into_iter().map(|combination| get_combo_compliment(item_list.clone(), combination)).collect();
     }
-    let mut lines: Vec<String>  = vec!["\\version \"2.24.4\"".to_string()];
-    lines.push("{".to_string());
-    lines.push("    d''1".to_string());
+    let total = combos.len();
+    println!("Total combinations: {}.", total);
+    for (idx, combo) in combos.into_iter().enumerate(){
+        let for_printing = combo.join(", ");
+        println!("{}: {}", idx + 1, for_printing);
+    }
 
-    for combo in combos.into_iter(){
-        let for_printing = combo.join(" ");
-        lines.push(format!("   <{}>", for_printing));
-    }
-    lines.push("}".to_string());
-    std::fs::write("combo_out.ly", lines.join("\n")).unwrap();
 }
