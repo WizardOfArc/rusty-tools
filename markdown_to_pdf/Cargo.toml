@@ -1,0 +1,10 @@
+[package]
+name = "markdown_to_pdf"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+pulldown-cmark = "0.9"
+printpdf = "0.7.0"
+anyhow = "1.0"
+clap = { version = "4.5.1", features = ["derive"] }
