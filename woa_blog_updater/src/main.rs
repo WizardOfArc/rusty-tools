@@ -1,19 +1,17 @@
 use std::env;
 use std::io::stdin;
 
-use clap::Parser; 
 use chrono::prelude::*;
-use serde::{Serialize, Deserialize};
+use clap::Parser;
+use serde::{Deserialize, Serialize};
 
 const POSTS_FILE_VAR_NAME: &str = "BLOG_POSTS_FILE";
-const POSTS_DIR_VAR_NAME: &str = "BLOG_POSTS_DIR";
 
 type BlogResult<T> = std::result::Result<T, BlogError>;
 
 #[derive(Debug)]
 enum BlogError {
     UnableToReadPostsFile,
-    SinglePostFileCouldNotBeRead,
     PostsFileUnParsable,
     CouldNotWritePostsFile,
 }
@@ -21,7 +19,6 @@ enum BlogError {
 #[derive(clap::ValueEnum, Clone, Debug)]
 enum Command {
     AddPost,
-    AddPostFromFile,
     ListPosts,
 }
 
@@ -55,24 +52,6 @@ impl Post {
             content,
         }
     }
-
-    fn from_file(filename: &str) -> BlogResult<Post> {
-       println!("Making a post from file [ {} ]", filename);
-       let file_contents = std::fs::read_to_string(filename).map_err(|_| BlogError::SinglePostFileCouldNotBeRead)?;
-       let lines: Vec<String> = file_contents.split("\n").filter(|s| !s.is_empty()).map(str::to_string).collect();
-       if lines.is_empty() {
-           println!("Post entry file is empty");
-           Err(BlogError::SinglePostFileCouldNotBeRead)
-       } else if lines.len() == 1 {
-           println!("Post entry file needs at least 2 lines");
-           Err(BlogError::SinglePostFileCouldNotBeRead)
-
-       } else {
-           let title = lines[0].trim().to_string();
-           let body = lines[1..].iter().map(|s| s.trim().to_string()).collect::<Vec<_>>().join("^");
-           Ok(Post{title, body})
-       }
-    }
 }
 
 fn create_post() -> Post {
@@ -81,7 +60,9 @@ fn create_post() -> Post {
     let mut title = String::new();
     stdin().read_line(&mut title).expect("Unable to read title");
     // prompt for body
-    println!("Enter the body of the post (don't use new lines - use '^' to make paragraph breaks):");
+    println!(
+        "Enter the body of the post (don't use new lines - use '^' to make paragraph breaks):"
+    );
     let mut body = String::new();
     stdin().read_line(&mut body).expect("Unable to read body");
     Post {
@@ -98,12 +79,26 @@ struct PostForJson {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+struct FooterLink {
+    label: String,
+    url: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct Page {
+    title: String,
+    css: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 struct BlogPostsForJson {
+    page: Page,
+    footer_links: Vec<FooterLink>,
     posts: Vec<PostForJson>,
 }
 
 impl BlogPostsForJson {
-    fn from_json_string(json_string: &str) -> BlogResult<BlogPostsForJson>{
+    fn from_json_string(json_string: &str) -> BlogResult<BlogPostsForJson> {
         serde_json::from_str(json_string).map_err(|_| BlogError::PostsFileUnParsable)
     }
 
@@ -117,7 +112,8 @@ impl BlogPostsForJson {
     }
 
     fn from_file(filename: &str) -> BlogResult<BlogPostsForJson> {
-        let file_contents = std::fs::read_to_string(filename).map_err(|_| BlogError::UnableToReadPostsFile)?;
+        let file_contents =
+            std::fs::read_to_string(filename).map_err(|_| BlogError::UnableToReadPostsFile)?;
         BlogPostsForJson::from_json_string(&file_contents)
     }
 
@@ -131,18 +127,32 @@ fn main() {
     let filename = env::var(POSTS_FILE_VAR_NAME).expect("No blog posts file specified");
     match args.command {
         Command::AddPost => {
-            let mut blog_posts = BlogPostsForJson::from_file(&filename).unwrap_or_else(|_| {
-                BlogPostsForJson { posts: vec![] }
-            });
+            let mut blog_posts =
+                BlogPostsForJson::from_file(&filename).unwrap_or_else(|_| BlogPostsForJson {
+                    posts: vec![],
+                    footer_links: vec![],
+                    page: Page {
+                        title: "".to_string(),
+                        css: "".to_string(),
+                    },
+                });
             let new_post = create_post();
             blog_posts.add_post(new_post);
-            blog_posts.save_to_file(&filename).expect("Unable to save blog posts");
+            blog_posts
+                .save_to_file(&filename)
+                .expect("Unable to save blog posts");
         }
         Command::ListPosts => {
             println!("BlogPosts in file: {}", &filename);
-            let blog_posts = BlogPostsForJson::from_file(&filename).unwrap_or_else(|_| {
-                BlogPostsForJson { posts: vec![] }
-            });
+            let blog_posts =
+                BlogPostsForJson::from_file(&filename).unwrap_or_else(|_| BlogPostsForJson {
+                    posts: vec![],
+                    footer_links: vec![],
+                    page: Page {
+                        title: "".to_string(),
+                        css: "".to_string(),
+                    },
+                });
             for post in blog_posts.posts {
                 println!("Title: {}", post.title);
                 println!("WoA Time: {}", post.woa_time);
@@ -150,23 +160,6 @@ fn main() {
                     println!("{}", content);
                 }
                 println!("-----------------");
-            }
-        }
-        Command::AddPostFromFile => {
-            println!("Enter name of single post file in your Blog Posts directory");
-            let dir = env::var(POSTS_DIR_VAR_NAME).expect("No blog posts drectory specified");
-            let mut single_post_filename: String = String::new();
-            stdin().read_line(&mut single_post_filename).expect("Could not read Single Post File");
-            let full_path = format!("{}/{}", dir, single_post_filename.trim());
-            match Post::from_file(&full_path) {
-              Ok(post) => {
-                let mut blog_posts = BlogPostsForJson::from_file(&filename).unwrap_or_else(|_| {
-                    BlogPostsForJson { posts: vec![] }
-                });
-                blog_posts.add_post(post);
-                blog_posts.save_to_file(&filename).expect("Unable to save blog post");
-              }
-              Err(e) => println!("Could not make post from file {:?}", e)
             }
         }
     }
